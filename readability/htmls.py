@@ -56,19 +56,19 @@ def get_title(doc):
 
 
 def get_description(doc):
-    description = doc.find(".//meta[@name='description']")
-    if description is None:
+    description = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='description']")
+    if len(description) < 0:
         return '[no-description]'
 
-    return description.attrib["content"]
+    return description[0].attrib["content"]
 
 
 def get_keywords(doc):
-    keywords = doc.find(".//meta[@name='keywords']")
-    if keywords is None:
+    keywords = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='keywords']")
+    if len(keywords) < 0:
         return ''
 
-    return keywords.attrib["content"]
+    return keywords[0].attrib["content"]
 
 
 def add_match(collection, text, orig):
