@@ -1,5 +1,5 @@
-from cleaners import normalize_spaces, clean_attributes
-from encoding import get_encoding
+from .cleaners import normalize_spaces, clean_attributes
+from .encoding import get_encoding
 from lxml.html import tostring
 import logging
 import lxml.html
@@ -11,7 +11,7 @@ utf8_parser = lxml.html.HTMLParser(encoding='utf-8')
 
 
 def build_doc(page):
-    if isinstance(page, unicode):
+    if isinstance(page, str):
         page_unicode = page
     else:
         enc = get_encoding(page)
@@ -27,16 +27,16 @@ def js_re(src, pattern, flags, repl):
 
 def normalize_entities(cur_title):
     entities = {
-        u'\u2014': '-',
-        u'\u2013': '-',
-        u'&mdash;': '-',
-        u'&ndash;': '-',
-        u'\u00A0': ' ',
-        u'\u00AB': '"',
-        u'\u00BB': '"',
-        u'&quot;': '"',
+        '\u2014': '-',
+        '\u2013': '-',
+        '&mdash;': '-',
+        '&ndash;': '-',
+        '\u00A0': ' ',
+        '\u00AB': '"',
+        '\u00BB': '"',
+        '&quot;': '"',
     }
-    for c, r in entities.iteritems():
+    for c, r in list(entities.items()):
         if c in cur_title:
             cur_title = cur_title.replace(c, r)
 
@@ -57,7 +57,7 @@ def get_title(doc):
 
 def get_description(doc):
     description = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='description']")
-    if len(description) < 0:
+    if len(description) <= 0:
         return '[no-description]'
 
     return description[0].attrib["content"]
@@ -65,7 +65,7 @@ def get_description(doc):
 
 def get_keywords(doc):
     keywords = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='keywords']")
-    if len(keywords) < 0:
+    if len(keywords) <= 0:
         return ''
 
     return keywords[0].attrib["content"]
@@ -129,7 +129,7 @@ def shorten_title(doc):
 
 def get_body(doc):
     [elem.drop_tree() for elem in doc.xpath('.//script | .//link | .//style')]
-    raw_html = unicode(tostring(doc.body or doc))
+    raw_html = str(tostring(doc.body or doc))
     cleaned = clean_attributes(raw_html)
     try:
         # BeautifulSoup(cleaned) #FIXME do we really need to try loading it?

@@ -19,7 +19,7 @@ def get_encoding(page):
         except UnicodeDecodeError:
             return False
 
-    text = re.sub('</?[^>]*>\s*', ' ', page)
+    text = re.sub(b'</?[^>]*>\s*', b'', page)
     enc = 'utf-8'
     if not text.strip() or len(text) < 10:
         return enc  # can't guess
