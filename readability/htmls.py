@@ -1,23 +1,31 @@
 from .cleaners import normalize_spaces, clean_attributes
-from .encoding import get_encoding
+from .encoding import decode_html
+from lxml.html import document_fromstring
 from lxml.html import tostring
+from lxml.html import soupparser
 import logging
-import lxml.html
 import re
+
 
 logging.getLogger().setLevel(logging.DEBUG)
 
-utf8_parser = lxml.html.HTMLParser(encoding='utf-8')
+# utf8_parser = lxml.html.HTMLParser(encoding='utf-8')
 
 
 def build_doc(page):
-    if isinstance(page, str):
-        page_unicode = page
-    else:
-        enc = get_encoding(page)
-        page_unicode = page.decode(enc, 'replace')
-    doc = lxml.html.document_fromstring(
-        page_unicode.encode('utf-8', 'replace'), parser=utf8_parser)
+    """解析HTML
+    @para page: 爬取的页面
+    @return <class 'lxml.html.HtmlElement'> 类型对象
+    """
+    # lxml.html.document_fromstring(string): Parses a document from the given string. This always creates a correct HTML document, which means the parent node is <html>, and there is a body and possibly a head.
+    doc = document_fromstring(decode_html(page))
+    try:
+        tostring(doc, encoding='unicode')
+    except UnicodeDecodeError:
+        """Using soupparser as a fallback
+        """
+        print("Using soupparser as a fallback")
+        doc = soupparser.fromstring(decode_html(page))
     return doc
 
 
@@ -130,7 +138,7 @@ def shorten_title(doc):
 def get_body(doc):
     [elem.drop_tree() for elem in doc.xpath('.//script | .//link | .//style')]
     # raw_html = str(tostring(doc.body or doc))
-    raw_html = tostring(doc.body or doc)
+    raw_html = tostring(doc.body or doc).strip()
     cleaned = clean_attributes(raw_html)
     try:
         # BeautifulSoup(cleaned) #FIXME do we really need to try loading it?

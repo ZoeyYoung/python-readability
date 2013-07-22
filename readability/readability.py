@@ -24,8 +24,8 @@ log = logging.getLogger()
 
 REGEXES = {
     'unlikelyCandidatesRe': re.compile('combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter|clear', re.I),
-    'okMaybeItsACandidateRe': re.compile('and|article|body|column|main|shadow', re.I),
-    'positiveRe': re.compile('article|body|content|entry|hentry|main|page|pagination|post|text|blog|story|topics|post', re.I),
+    'okMaybeItsACandidateRe': re.compile('and|article|body|column|main.*|shadow', re.I),
+    'positiveRe': re.compile('article|body|content|entry|hentry|main|page|pagination|post|text|blog|story|topics|.*post.*', re.I),
     'negativeRe': re.compile('combx|comment|com|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
     'extraneous': re.compile('print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single', re.I),
     'divToPElementsRe': re.compile('<(a|blockquote|dl|div|img|ol|p|pre|table|ul)', re.I),
@@ -105,11 +105,15 @@ class Document:
         self.html = None
 
     def _html(self, force=False):
+        """
+        """
         if force or self.html is None:
             self.html = self._parse(self.input)
         return self.html
 
     def _parse(self, input):
+        """
+        """
         doc = build_doc(input)
         doc = html_cleaner.clean_html(doc)
         base_href = self.options.get('url', None)
