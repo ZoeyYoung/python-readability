@@ -129,7 +129,8 @@ def shorten_title(doc):
 
 def get_body(doc):
     [elem.drop_tree() for elem in doc.xpath('.//script | .//link | .//style')]
-    raw_html = str(tostring(doc.body or doc))
+    # raw_html = str(tostring(doc.body or doc))
+    raw_html = tostring(doc.body or doc)
     cleaned = clean_attributes(raw_html)
     try:
         # BeautifulSoup(cleaned) #FIXME do we really need to try loading it?
