@@ -1,8 +1,9 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+import logging
 import re
 import chardet
 from bs4 import UnicodeDammit
+
+LOG = logging.getLogger()
 
 
 BROTHER_ENCODINGS = [
@@ -16,12 +17,15 @@ def decode_html(html_string):
     dammit = UnicodeDammit(html_string, ['GB2312', 'GBK', 'GB18030'], smart_quotes_to="html", is_html=True)
     doc = dammit.unicode_markup
     print("dammit —— ", dammit.original_encoding)
+    # FIXME 部分网页判断是'ISO-8859-2', 不知道为什么, 这时使用备选方案进行判断
     if dammit.original_encoding == 'ISO-8859-2':
         enc = get_encoding(html_string)
-        print("chardet —— ", enc)
+        # print("chardet —— ", enc)
         doc = html_string.decode(enc, 'replace')
+        print(enc)
     elif not dammit.unicode_markup:
         raise UnicodeDecodeError("Failed to detect encoding, tried [%s]", ', '.join(dammit.triedEncodings))
+    # print(doc.encode('utf-8'))
     return doc
 
 
@@ -32,7 +36,8 @@ def get_encoding(page):
         try:
             diff = text.decode(enc, 'ignore').encode(enc)
             sizes = len(diff), len(text)
-            if abs(len(text) - len(diff)) < max(sizes) * 0.01:  # 99% of utf-8
+            # 99% of utf-8
+            if abs(len(text) - len(diff)) < max(sizes) * 0.01:
                 return True
         except UnicodeDecodeError:
             return False

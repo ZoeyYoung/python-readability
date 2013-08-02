@@ -1,15 +1,22 @@
-from .cleaners import normalize_spaces, clean_attributes
-from .encoding import decode_html
-from lxml.html import document_fromstring
-from lxml.html import tostring
-from lxml.html import soupparser
 import logging
 import re
 
+from lxml.html import document_fromstring
+from lxml.html import html5parser
+from lxml.html import HTMLParser
+from lxml.html import tostring
+from lxml.html import soupparser
+
+from .cleaners import clean_attributes
+from .cleaners import normalize_spaces
+from .cleaners import text_content
+from .encoding import decode_html
 
 logging.getLogger().setLevel(logging.DEBUG)
+utf8_parser = HTMLParser(encoding='utf-8')
 
-# utf8_parser = lxml.html.HTMLParser(encoding='utf-8')
+
+LOG = logging.getLogger()
 
 
 def build_doc(page):
@@ -17,15 +24,20 @@ def build_doc(page):
     @para page: 爬取的页面
     @return <class 'lxml.html.HtmlElement'> 类型对象
     """
-    # lxml.html.document_fromstring(string): Parses a document from the given string. This always creates a correct HTML document, which means the parent node is <html>, and there is a body and possibly a head.
-    doc = document_fromstring(decode_html(page))
-    try:
-        tostring(doc, encoding='unicode')
-    except UnicodeDecodeError:
-        """Using soupparser as a fallback
-        """
-        print("Using soupparser as a fallback")
-        doc = soupparser.fromstring(decode_html(page))
+    # Requires that the `page` not be None
+    if page is None:
+        LOG.error("Page content is None, can't build_doc")
+        return ''
+    html5doc = html5parser.fromstring(decode_html(page))
+    content = tostring(html5doc, method='html')
+    doc = document_fromstring(content)
+    # try:
+    #     tostring(doc, encoding='unicode')
+    # except UnicodeDecodeError:
+    #     """Using soupparser as a fallback
+    #     """
+    #     print("Using soupparser as a fallback")
+    #     doc = soupparser.fromstring(decode_html(page))
     return doc
 
 
@@ -56,27 +68,28 @@ def norm_title(title):
 
 
 def get_title(doc):
-    title = doc.find('.//title')
-    if title is None or len(title.text) == 0:
+    title_node = doc.find('.//title')
+    if title_node is None:
         return '[no-title]'
-
-    return norm_title(title.text)
+    title = title_node.text
+    return norm_title(title)
 
 
 def get_description(doc):
-    description = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='description']")
-    if len(description) <= 0:
+    description_node = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='description']")
+    if len(description_node) <= 0:
         return '[no-description]'
-
-    return description[0].attrib["content"]
+    description = description_node[0].attrib["content"]
+    # print(description)
+    return text_content(normalize_spaces(description))
 
 
 def get_keywords(doc):
-    keywords = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='keywords']")
-    if len(keywords) <= 0:
+    keywords_node = doc.xpath("//meta[translate(@name, 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz')='keywords']")
+    if len(keywords_node) <= 0:
         return ''
-
-    return keywords[0].attrib["content"]
+    keywords = keywords_node[0].attrib["content"]
+    return normalize_spaces(keywords)
 
 
 def add_match(collection, text, orig):
@@ -87,11 +100,12 @@ def add_match(collection, text, orig):
 
 
 def shorten_title(doc):
-    title = doc.find('.//title')
-    if title is None or title.text is None or len(title.text) == 0:
-        return ''
+    title_node = doc.find('.//title')
+    if title_node is None:
+        return '[no-title]'
 
-    title = orig = norm_title(title.text)
+    title = title_node.text
+    title = orig = norm_title(title)
 
     candidates = set()
 
@@ -131,19 +145,18 @@ def shorten_title(doc):
 
     if not 15 < len(title) < 150:
         return orig
-
     return title
 
 
 def get_body(doc):
     [elem.drop_tree() for elem in doc.xpath('.//script | .//link | .//style')]
-    # raw_html = str(tostring(doc.body or doc))
-    raw_html = tostring(doc.body or doc).strip()
+    raw_html = str(tostring(doc.body or doc))
     cleaned = clean_attributes(raw_html)
     try:
-        # BeautifulSoup(cleaned) #FIXME do we really need to try loading it?
+        #BeautifulSoup(cleaned) #FIXME do we really need to try loading it?
         return cleaned
     except Exception:  # FIXME find the equivalent lxml error
-        logging.error("cleansing broke html content: %s\n---------\n%s" %
-                      (raw_html, cleaned))
+        logging.error("cleansing broke html content: %s\n---------\n%s" % (
+            raw_html,
+            cleaned))
         return raw_html
