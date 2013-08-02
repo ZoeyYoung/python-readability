@@ -10,11 +10,17 @@ NOSE := bin/nosetests
 # Tests rule!
 # ###########
 .PHONY: test
-test: venv develop $(NOSE)
-	$(NOSE) --with-id -s tests
+test: venv $(NOSE)
+	$(NOSE) --with-id -s src/tests
 
 $(NOSE):
-	$(PIP) install nose pep8 coverage
+	$(PY) setup.py test
+
+.PHONY: regression_test
+regression_test:
+	$(PY) src/tests/regression.py
+	$(PY) -m webbrowser src/tests/regression_test_output/index.html
+
 
 # #######
 # INSTALL
@@ -28,10 +34,11 @@ bin/python:
 
 .PHONY: clean_venv
 clean_venv:
-	rm -rf bin include lib local man
+	rm -rf bin include lib local man share
 
-develop: lib/python*/site-packages/bookie-api.egg-link
-lib/python*/site-packages/bookie-api.egg-link:
+.PHONY: develop
+develop: lib/python*/site-packages/readability_lxml.egg-link
+lib/python*/site-packages/readability_lxml.egg-link:
 	$(PY) setup.py develop
 
 
@@ -40,6 +47,9 @@ lib/python*/site-packages/bookie-api.egg-link:
 # ###########
 .PHONY: clean_all
 clean_all: clean_venv
+	if [ -d dist ]; then \
+		rm -r dist; \
+    fi
 
 
 # ###########
@@ -55,4 +65,4 @@ upload:
 
 .PHONY: version_update
 version_update:
-	$(EDITOR) setup.py
+	$(EDITOR) setup.py src/readability_lxml/__init__.py
